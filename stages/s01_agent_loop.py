@@ -34,6 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core.client import make_client  # noqa: E402
+from anthropic.types import Message  # noqa: E402
 
 # Windows 控制台默认 GBK，强制 UTF-8 避免中文乱码
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -110,6 +111,8 @@ def agent_loop(messages: list[dict]) -> None:
             tools=TOOLS,
             max_tokens=4096,
         )
+        # 学习用：把模型这一轮的原始结构暴露出来
+        _print_response_brief(response)
         # 1) 把 assistant 这一轮（可能是文本 + tool_use）追加到历史
         messages.append({"role": "assistant", "content": response.content})
 
@@ -135,6 +138,37 @@ def agent_loop(messages: list[dict]) -> None:
                 }
             )
         messages.append({"role": "user", "content": results})
+
+
+def _print_response_brief(resp: Message) -> None:
+    """打印一次模型响应的结构概要，便于观察 agent loop 每一轮的决策。
+
+    输出 stop_reason、token 用量和 content 中每个 block（thinking / text / tool_use），
+    使用 ANSI 灰色（\\033[90m）与工具命令的黄色区分。仅用于学习/调试，s06 起可关闭。
+    """
+    usage = getattr(resp, "usage", None)
+    in_tok = getattr(usage, "input_tokens", "?") if usage else "?"
+    out_tok = getattr(usage, "output_tokens", "?") if usage else "?"
+    print(
+        f"\033[90m[← response] stop={resp.stop_reason} "
+        f"tokens(in/out)={in_tok}/{out_tok}\033[0m"
+    )
+    for i, block in enumerate(resp.content or []):
+        btype = getattr(block, "type", "?")
+        if btype == "thinking":
+            text = (getattr(block, "thinking", "") or "").strip()
+            preview = text[:200] + ("..." if len(text) > 200 else "")
+            print(f"\033[90m  [{i}] thinking: {preview}\033[0m")
+        elif btype == "text":
+            text = (getattr(block, "text", "") or "").strip()
+            preview = text[:200] + ("..." if len(text) > 200 else "")
+            print(f"\033[90m  [{i}] text: {preview}\033[0m")
+        elif btype == "tool_use":
+            name = getattr(block, "name", "?")
+            inp = getattr(block, "input", {})
+            print(f"\033[90m  [{i}] tool_use: {name}({inp})\033[0m")
+        else:
+            print(f"\033[90m  [{i}] {btype}: {block!r}\033[0m")
 
 
 def _print_assistant_text(content) -> None:
