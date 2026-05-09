@@ -144,7 +144,10 @@ def _run_turn(messages: list[dict]) -> Message:
             for chunk in stream.text_stream:
                 print(chunk, end="", flush=True)
             print()
-            return stream.get_final_message()
+            final = stream.get_final_message()
+        # 流式：text 已实时打印过，brief_only=True 只显示 stop+tokens 元信息
+        _print_response_brief(final, brief_only=True)
+        return final
     response = client.messages.create(
         model=MODEL,
         system=SYSTEM,
@@ -192,11 +195,14 @@ def agent_loop(messages: list[dict]) -> None:
         messages.append({"role": "user", "content": results})
 
 
-def _print_response_brief(resp: Message) -> None:
+def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
     """打印一次模型响应的结构概要，便于观察 agent loop 每一轮的决策。
 
     输出 stop_reason、token 用量和 content 中每个 block（thinking / text / tool_use），
     使用 ANSI 灰色（\\033[90m）与工具命令的黄色区分。仅用于学习/调试，s06 起可关闭。
+
+    brief_only=True 时仅打印第一行（stop+tokens），跳过 content 详情——
+    用于流式模式：text 已经实时打字过，tool_use 即将以黄色 $ 显示，避免重复。
     """
     usage = getattr(resp, "usage", None)
     in_tok = getattr(usage, "input_tokens", "?") if usage else "?"
@@ -205,6 +211,8 @@ def _print_response_brief(resp: Message) -> None:
         f"\033[90m[← response] stop={resp.stop_reason} "
         f"tokens(in/out)={in_tok}/{out_tok}\033[0m"
     )
+    if brief_only:
+        return
     for i, block in enumerate(resp.content or []):
         btype = getattr(block, "type", "?")
         if btype == "thinking":
