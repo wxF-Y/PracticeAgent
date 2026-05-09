@@ -61,7 +61,11 @@ SYSTEM = (
 #   1) thinking 块会占用 max_tokens 配额（与 text/tool_use 共享）
 #   2) 历史回填后，下一轮 input_tokens 会包含 thinking 文本
 # 部分模型/网关默认开启 thinking，必须显式 disabled 才会关闭。
-# 如需启用，改为 {"type": "enabled", "budget_tokens": 1024}。
+#
+# 三种模式（按模型支持选，详见 https://docs.claude.com/en/docs/about-claude/models）：
+#   {"type": "disabled"}                          ← 关闭，全模型通用
+#   {"type": "enabled", "budget_tokens": 1024}    ← Extended：你定预算；Opus 4.7 已弃用
+#   {"type": "adaptive"}                          ← Adaptive：模型自决，Opus 4.7 推荐；Haiku 不支持
 THINKING: ThinkingConfigDisabledParam = {"type": "disabled"}
 
 # 流式输出：True 时 text 块逐 delta 实时打印（打字机效果）；tool_use input
