@@ -255,7 +255,9 @@ def main() -> None:
             break
         history.append({"role": "user", "content": query})
         agent_loop(history)
-        _print_assistant_text(history[-1]["content"])
+        # 流式模式下 text 已经实时打字过；非流式才需要这里把完整 text 打出来
+        if not STREAM:
+            _print_assistant_text(history[-1]["content"])
         print()
 
 
