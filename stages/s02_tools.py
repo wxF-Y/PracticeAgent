@@ -138,6 +138,12 @@ def _brief_args(args: dict) -> str:
 
 
 def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
+    """打印一次模型响应的结构概要。
+
+    brief_only=True（流式模式）：跳过 text 块（已实时打字过避免重复），
+    但 tool_use 等结构化块仍显示——它们没出现在流式输出里，
+    需要从这里观察到模型选了什么工具、参数是什么。
+    """
     usage = getattr(resp, "usage", None)
     in_tok = getattr(usage, "input_tokens", "?") if usage else "?"
     out_tok = getattr(usage, "output_tokens", "?") if usage else "?"
@@ -145,10 +151,10 @@ def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
         f"\033[90m[← response] stop={resp.stop_reason} "
         f"tokens(in/out)={in_tok}/{out_tok}\033[0m"
     )
-    if brief_only:
-        return
     for i, block in enumerate(resp.content or []):
         btype = getattr(block, "type", "?")
+        if brief_only and btype == "text":
+            continue
         if btype == "text":
             text = (getattr(block, "text", "") or "").strip()
             preview = text[:200] + ("..." if len(text) > 200 else "")

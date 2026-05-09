@@ -201,8 +201,9 @@ def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
     输出 stop_reason、token 用量和 content 中每个 block（thinking / text / tool_use），
     使用 ANSI 灰色（\\033[90m）与工具命令的黄色区分。仅用于学习/调试，s06 起可关闭。
 
-    brief_only=True 时仅打印第一行（stop+tokens），跳过 content 详情——
-    用于流式模式：text 已经实时打字过，tool_use 即将以黄色 $ 显示，避免重复。
+    brief_only=True（流式模式）：跳过 text 块（已实时打字过避免重复），但
+    tool_use/thinking 等结构化块仍显示——它们没出现在流式输出里，
+    需要从 brief 看到模型选了什么工具、参数是什么。
     """
     usage = getattr(resp, "usage", None)
     in_tok = getattr(usage, "input_tokens", "?") if usage else "?"
@@ -211,10 +212,10 @@ def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
         f"\033[90m[← response] stop={resp.stop_reason} "
         f"tokens(in/out)={in_tok}/{out_tok}\033[0m"
     )
-    if brief_only:
-        return
     for i, block in enumerate(resp.content or []):
         btype = getattr(block, "type", "?")
+        if brief_only and btype == "text":
+            continue
         if btype == "thinking":
             text = (getattr(block, "thinking", "") or "").strip()
             preview = text[:200] + ("..." if len(text) > 200 else "")
