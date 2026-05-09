@@ -1,0 +1,21 @@
+# 环境
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# 编辑器
+.vscode/
+.idea/
+
+# 运行产物
+*.log
+.practiceagent/
+sessions/
+*.jsonl
+
+# OS
+.DS_Store
+Thumbs.db

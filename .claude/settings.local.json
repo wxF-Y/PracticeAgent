@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:alexop.dev)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:docs.openclaw.ai)",
+      "WebFetch(domain:openclaw-ai.com)",
+      "WebFetch(domain:milvus.io)",
+      "WebFetch(domain:blog.cdnsun.com)",
+      "Bash(head -n 153 \"C:/Users/lds/.claude/plans/windows-agent-openclaw-claude-agent-age-lexical-shamir.md\")",
+      "Bash(mv \"C:/Users/lds/.claude/plans/windows-agent-openclaw-claude-agent-age-lexical-shamir.md.tmp\" \"C:/Users/lds/.claude/plans/windows-agent-openclaw-claude-agent-age-lexical-shamir.md\")",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:static.crates.io)"
+    ]
+  }
+}
