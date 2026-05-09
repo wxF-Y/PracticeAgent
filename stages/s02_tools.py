@@ -159,6 +159,10 @@ def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
             text = (getattr(block, "text", "") or "").strip()
             preview = text[:200] + ("..." if len(text) > 200 else "")
             print(f"\033[90m  [{i}] text: {preview}\033[0m")
+        elif btype == "thinking":
+            text = (getattr(block, "thinking", "") or "").strip()
+            preview = text[:200] + ("..." if len(text) > 200 else "")
+            print(f"\033[90m  [{i}] thinking: {preview}\033[0m")
         elif btype == "tool_use":
             name = getattr(block, "name", "?")
             inp = getattr(block, "input", {})

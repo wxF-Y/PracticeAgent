@@ -38,10 +38,7 @@ from tools.glob_tool import TOOL as GLOB_TOOL  # noqa: E402
 from tools.grep_tool import TOOL as GREP_TOOL  # noqa: E402
 from tools.read_tool import TOOL as READ_TOOL  # noqa: E402
 from tools.write_tool import TOOL as WRITE_TOOL  # noqa: E402
-from anthropic.types import Message, MessageParam, ToolParam, ToolUseBlock  # noqa: E402
-from anthropic.types.thinking_config_disabled_param import (  # noqa: E402
-    ThinkingConfigDisabledParam,
-)
+from anthropic.types import Message, MessageParam, ThinkingConfigParam, ToolParam, ToolUseBlock  # noqa: E402
 
 # Windows 控制台 UTF-8
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -66,7 +63,7 @@ SYSTEM = (
     "shell 操作用 bash。直接动手，不要冗长解释。"
 )
 
-THINKING: ThinkingConfigDisabledParam = {"type": "disabled"}
+THINKING: ThinkingConfigParam = {"type": "enabled", "budget_tokens": 1024}
 STREAM = True
 
 
@@ -162,6 +159,10 @@ def _print_response_brief(resp: Message, brief_only: bool = False) -> None:
             text = (getattr(block, "text", "") or "").strip()
             preview = text[:200] + ("..." if len(text) > 200 else "")
             print(f"\033[90m  [{i}] text: {preview}\033[0m")
+        elif btype == "thinking":
+            text = (getattr(block, "thinking", "") or "").strip()
+            preview = text[:200] + ("..." if len(text) > 200 else "")
+            print(f"\033[90m  [{i}] thinking: {preview}\033[0m")
         elif btype == "tool_use":
             name = getattr(block, "name", "?")
             inp = getattr(block, "input", {})
