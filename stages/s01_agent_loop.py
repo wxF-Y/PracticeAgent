@@ -145,7 +145,7 @@ def _run_turn(messages: list[dict]) -> Message:
                 print(chunk, end="", flush=True)
             print()
             return stream.get_final_message()
-    return client.messages.create(
+    response = client.messages.create(
         model=MODEL,
         system=SYSTEM,
         messages=msgs,
@@ -154,13 +154,16 @@ def _run_turn(messages: list[dict]) -> Message:
         thinking=THINKING,
     )
 
+    # 学习用：把模型这一轮的原始结构暴露出来
+    _print_response_brief(response)
+    return response
+
 
 def agent_loop(messages: list[dict]) -> None:
     """核心循环：调用模型 → 执行工具 → 反馈结果，直到模型停止调用工具。"""
     while True:
         response = _run_turn(messages)
-        # 学习用：把模型这一轮的原始结构暴露出来
-        _print_response_brief(response)
+
         # 1) 把 assistant 这一轮（可能是文本 + tool_use）追加到历史
         messages.append({"role": "assistant", "content": response.content})
 
