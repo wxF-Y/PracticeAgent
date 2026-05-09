@@ -64,6 +64,10 @@ SYSTEM = (
 # 如需启用，改为 {"type": "enabled", "budget_tokens": 1024}。
 THINKING: ThinkingConfigDisabledParam = {"type": "disabled"}
 
+# 流式输出：True 时 text 块逐 delta 实时打印（打字机效果）；tool_use input
+# 会在流结束时整体累积出来。False 走非流式 messages.create() 一次性返回。
+STREAM = True
+
 # 工具定义：暴露给模型看的 JSON Schema
 TOOLS = [
     {
@@ -112,17 +116,45 @@ def run_bash(command: str) -> str:
         return f"Error: {exc}"
 
 
+def _run_turn(messages: list[dict]) -> Message:
+    """发起一轮模型请求，返回完整 Message。
+
+    STREAM=True：使用 messages.stream() context manager，实时打印 text 块的
+    delta，结束后通过 get_final_message() 拿到含完整 tool_use input 的 Message。
+    STREAM=False：走 messages.create()，一次性返回。
+
+    无论哪种模式，对外都是同一个 Message 对象——agent loop 主体逻辑不变。
+    """
+    msgs = cast(list[MessageParam], messages)
+    tools = cast(list[ToolParam], TOOLS)
+    if STREAM:
+        print("\033[35m[stream]\033[0m ", end="", flush=True)
+        with client.messages.stream(
+            model=MODEL,
+            system=SYSTEM,
+            messages=msgs,
+            tools=tools,
+            max_tokens=4096,
+            thinking=THINKING,
+        ) as stream:
+            for chunk in stream.text_stream:
+                print(chunk, end="", flush=True)
+            print()
+            return stream.get_final_message()
+    return client.messages.create(
+        model=MODEL,
+        system=SYSTEM,
+        messages=msgs,
+        tools=tools,
+        max_tokens=4096,
+        thinking=THINKING,
+    )
+
+
 def agent_loop(messages: list[dict]) -> None:
     """核心循环：调用模型 → 执行工具 → 反馈结果，直到模型停止调用工具。"""
     while True:
-        response = client.messages.create(
-            model=MODEL,
-            system=SYSTEM,
-            messages=cast(list[MessageParam], messages),
-            tools=cast(list[ToolParam], TOOLS),
-            max_tokens=4096,
-            thinking=THINKING,
-        )
+        response = _run_turn(messages)
         # 学习用：把模型这一轮的原始结构暴露出来
         _print_response_brief(response)
         # 1) 把 assistant 这一轮（可能是文本 + tool_use）追加到历史
