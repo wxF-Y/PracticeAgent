@@ -29,12 +29,16 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 # 让本文件可直接 `python stages/s01_agent_loop.py` 运行
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core.client import make_client  # noqa: E402
-from anthropic.types import Message  # noqa: E402
+from anthropic.types import Message, MessageParam, ToolParam, ToolUseBlock  # noqa: E402
+from anthropic.types.thinking_config_disabled_param import (  # noqa: E402
+    ThinkingConfigDisabledParam,
+)
 
 # Windows 控制台默认 GBK，强制 UTF-8 避免中文乱码
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -52,6 +56,13 @@ SYSTEM = (
     f"你是一个 coding agent，工作目录在 {os.getcwd()}。"
     "使用 bash 工具完成用户的任务。直接动手，不要冗长解释。"
 )
+
+# 显式禁用 thinking。原因：
+#   1) thinking 块会占用 max_tokens 配额（与 text/tool_use 共享）
+#   2) 历史回填后，下一轮 input_tokens 会包含 thinking 文本
+# 部分模型/网关默认开启 thinking，必须显式 disabled 才会关闭。
+# 如需启用，改为 {"type": "enabled", "budget_tokens": 1024}。
+THINKING: ThinkingConfigDisabledParam = {"type": "disabled"}
 
 # 工具定义：暴露给模型看的 JSON Schema
 TOOLS = [
@@ -107,9 +118,10 @@ def agent_loop(messages: list[dict]) -> None:
         response = client.messages.create(
             model=MODEL,
             system=SYSTEM,
-            messages=messages,
-            tools=TOOLS,
+            messages=cast(list[MessageParam], messages),
+            tools=cast(list[ToolParam], TOOLS),
             max_tokens=4096,
+            thinking=THINKING,
         )
         # 学习用：把模型这一轮的原始结构暴露出来
         _print_response_brief(response)
@@ -123,9 +135,10 @@ def agent_loop(messages: list[dict]) -> None:
         # 3) 把每个 tool_use 都执行一遍，把结果作为下一轮 user 消息回填
         results = []
         for block in response.content:
-            if getattr(block, "type", None) != "tool_use":
+            if not isinstance(block, ToolUseBlock):
                 continue
-            cmd = block.input.get("command", "")
+            inp = block.input if isinstance(block.input, dict) else {}
+            cmd = str(inp.get("command", ""))
             print(f"\033[33m$ {cmd}\033[0m")
             output = run_bash(cmd)
             preview = output if len(output) <= 400 else output[:400] + "...(truncated)"
