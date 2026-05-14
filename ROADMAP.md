@@ -17,7 +17,7 @@
 | s07 | Permissions & Hooks | 多级权限、Pre/Post 钩子 | `core/permissions.py`, `hooks/` | **V5**（敏感动作确认） |
 | s08 | Memory | 跨会话 `MEMORY.md` | `core/memory.py` | **V4**（记住 pnpm 偏好） |
 | s09 | Tasks & Cron | 后台任务、定时触发 | `core/tasks.py` | **V3**（定时推 git log） |
-| s10 | Gateway | 终端 / 可选 IM 通道 | `gateway/cli.py`, `gateway/im.py` | **V3, V6**（飞书 @ 机器人） |
+| s10 | Gateway | 终端 / 可选 IM 通道 | `gateway/cli.py`, `gateway/weixin.py` | **V3, V6**（微信 ClawBot） |
 
 > 验收场景速记：V1=本机目录写 README · V2=100 文件重构 · V3=定时推送 · V4=跨会话偏好 · V5=敏感动作确认 · V6=IM 通道接入
 
@@ -91,10 +91,10 @@ s01 → s02 → s03 → s04 → s05
 |---|---|---|
 | V1 | 给本机一份目录写个 README | 单条 prompt 无人工干预生成≥3 段、内容贴合目录的 README |
 | V2 | 100 文件重命名/重构 | 子 agent 并行处理，长会话不爆上下文，最终 diff 一致 |
-| V3 | 每天 9 点把昨日 git log 推到飞书 | cron 触发，消息正确送达通道 |
+| V3 | 每天 9 点把昨日 git log 推到微信ClawBot | cron 触发，消息正确送达通道 |
 | V4 | 记住"用 pnpm 而不是 npm" | 重启进程、新会话仍生效 |
 | V5 | 删除/网络等敏感动作要确认 | 默认拦截 + 询问，用户拒绝则不执行 |
-| V6 | 在飞书群 @ 机器人读代码并回复 | 通道 inbound→agent loop→outbound 闭环 |
+| V6 | 在微信 @ ClawBot 读代码并回复 | 通道 inbound→agent loop→outbound 闭环 |
 
 附加约束：
 - 代码量 ≤ 5000 行，可被一个人完整阅读
