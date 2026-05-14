@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
 import queue
 import sys
 import threading
@@ -463,6 +464,7 @@ def main() -> int:
     g.add_argument("--continue", "-c", dest="cont", action="store_true")
     g.add_argument("--list", "-l", dest="list_", action="store_true")
     parser.add_argument("--weixin", action="store_true", help="启用微信ClawBot通道")
+    parser.add_argument("--login", action="store_true", help="扫码登录微信ClawBot并保存凭证后退出")
     parser.add_argument("--threshold", type=int, default=DEFAULT_THRESHOLD_TOKENS)
     parser.add_argument("--keep-tail", type=int, default=DEFAULT_KEEP_TAIL_TURNS)
     parser.add_argument("--mode", choices=[m.value for m in PermissionMode], default=PermissionMode.DEFAULT.value)
@@ -471,6 +473,20 @@ def main() -> int:
     COMPACT_THRESHOLD = args.threshold
     KEEP_TAIL_TURNS = args.keep_tail
     PERMISSIONS.mode = PermissionMode(args.mode)
+
+    # ── 扫码登录（独立流程，完成后退出）─────────────────────────────────────
+    if args.login:
+        from gateway.weixin import login_with_qrcode
+        raw_id = os.environ.get("WEIXIN_ACCOUNT_ID", "default")
+        account_id = re.sub(r"[^a-zA-Z0-9_-]", "_", raw_id) or "default"
+        base_url = os.environ.get("WEIXIN_BASE_URL", "https://ilinkai.weixin.qq.com")
+        try:
+            login_with_qrcode(account_id=account_id, base_url=base_url)
+            print("\n凭证已保存，下次加 --weixin 即可直接接入微信通道。")
+        except Exception as exc:
+            print(f"\n登录失败：{exc}")
+            return 1
+        return 0
 
     if args.list_:
         items = Session.list_recent()

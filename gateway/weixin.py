@@ -265,7 +265,7 @@ class WeixinChannel:
         url = f"{self._base_url}/ilink/bot/sendmessage"
         try:
             result = _post(url, payload, self._headers)
-            if result.get("ret") != 0:
+            if result.get("ret", 0) != 0:
                 logger.error("sendmessage 失败: %s", result)
         except Exception as exc:
             logger.error("sendmessage 异常: %s", exc)
@@ -279,7 +279,7 @@ class WeixinChannel:
                     buf_val = self._sync.get("get_updates_buf", "")
                 payload = {"get_updates_buf": buf_val, "base_info": self._base_info()}
                 result = _post(url, payload, self._headers, timeout=45)
-                ret = result.get("ret", -1)
+                ret = result.get("ret", 0)  # 此 API 成功时可能不含 ret 字段
                 if ret == _ERR_SESSION_EXPIRED:
                     logger.error("微信会话过期，请重新登录并更新 WEIXIN_BOT_TOKEN")
                     self._stop_event.wait(300)
